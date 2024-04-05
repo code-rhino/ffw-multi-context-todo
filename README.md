@@ -1,71 +1,181 @@
-# Getting Started with Create React App
+# React - Multiple Context
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+[Video](https://vimeo.com/931251458/d31126c6cb?share=copy)
 
-## Available Scripts
+### **Prerequisites**
+Before we start, make sure you have a basic understanding of React and have Node.js installed on your machine. You should be familiar with React components, props, state, and hooks.
 
-In the project directory, you can run:
+### **Step 1: Setting Up Your React Application**
 
-### `npm start`
+First, create a new React application using Create React App:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+npx create-react-app task-manager
+cd task-manager
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### **Step 2: Creating the Task Context**
 
-### `npm test`
+The Task Context will be responsible for managing tasks and their functionalities.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Create a Context**: Navigate to the `src` directory, create a folder named `contexts`, and inside it, create a file named `TasksContext.js`. Initialize your context here:
 
-### `npm run build`
+  ```javascript
+  // src/contexts/TasksContext.js
+  import React, { createContext, useContext, useState } from 'react';
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+  const TasksContext = createContext();
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+  export const useTasks = () => useContext(TasksContext);
+  ```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **Implement Task Provider**: The provider will wrap your components, allowing them to access tasks and task-related functions.
 
-### `npm run eject`
+  ```javascript
+  export const TasksContextProvider = ({ children }) => {
+      const initialTasks = []; // Start with an empty array or pre-defined tasks
+      const [tasks, setTasks] = useState(initialTasks);
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+      // Function to add a new task
+      const addTask = task => setTasks(prevTasks => [...prevTasks, task]);
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+      // Function to remove a task by its id
+      const removeTask = taskId => setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+      return (
+          <TasksContext.Provider value={{ tasks, addTask, removeTask }}>
+              {children}
+          </TasksContext.Provider>
+      );
+  };
+  ```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### **Step 3: Creating the Filter Context**
 
-## Learn More
+Similar to the Tasks Context, the Filter Context will manage the state for filtering tasks.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- **Create a Filter Context**: In the same `contexts` directory, create a `FilterContext.js` file and set up your context and provider.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+  ```javascript
+  // src/contexts/FilterContext.js
+  import React, { createContext, useContext, useState } from 'react';
 
-### Code Splitting
+  const FilterContext = createContext();
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+  export const useFilter = () => useContext(FilterContext);
 
-### Analyzing the Bundle Size
+  export const FilterContextProvider = ({ children }) => {
+      const [filter, setFilter] = useState('all'); // 'all', 'done', 'active'
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+      return (
+          <FilterContext.Provider value={{ filter, setFilter }}>
+              {children}
+          </FilterContext.Provider>
+      );
+  };
+  ```
 
-### Making a Progressive Web App
+### **Step 4: Building the TaskList Component**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+The `TaskList` component will display the tasks. It will use the `useTasks` hook to access the tasks from the `TasksContext`.
 
-### Advanced Configuration
+- **Create the TaskList Component**: Inside the `src/components` directory, create a `TaskList.js` file.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+  ```javascript
+  // src/components/TaskList.js
+  import React from 'react';
+  import { useTasks } from '../contexts/TasksContext';
+  import { useFilter } from '../contexts/FilterContext';
 
-### Deployment
+  const TaskList = () => {
+      const { tasks } = useTasks();
+      const { filter } = useFilter();
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+      const filteredTasks = tasks.filter(task => {
+          if (filter === 'done') return task.done;
+          if (filter === 'active') return !task.done;
+          return true; // for 'all'
+      });
 
-### `npm run build` fails to minify
+      return (
+          <ul>
+              {filteredTasks.map(task => (
+                  <li key={task.id}>{task.title} - {task.done ? 'Done' : 'Pending'}</li>
+              ))}
+          </ul>
+      );
+  };
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
-# ffw-multi-context-todo
+  export default TaskList;
+  ```
+
+### **Step 5: Creating the FilterSelect Component**
+
+This component will allow users to filter tasks based on their status.
+
+- **Create FilterSelect Component**: In the `src/components` directory, create a `FilterSelect.js` file.
+
+  ```javascript
+  // src/components/FilterSelect.js
+  import React from 'react';
+  import { useFilter } from '../contexts/FilterContext';
+
+  const FilterSelect = () => {
+      const { filter, setFilter } = useFilter();
+
+      return (
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+              <option value="all">All</option>
+              <option value="done">Done</option>
+              <option value="active">Active</option>
+          </select>
+      );
+  };
+
+  export default FilterSelect;
+  ```
+
+### **Step 6: Integrating Context Providers in the App Component**
+
+Wrap your components with the context providers to grant
+
+ them access to the context values.
+
+- **Update the App Component**: Modify the `src/App.js` file to use the context providers and components you've created.
+
+  ```javascript
+  // src/App.js
+  import React from 'react';
+  import TaskList from './components/TaskList';
+  import FilterSelect from './components/FilterSelect';
+  import { TasksContextProvider } from './contexts/TasksContext';
+  import { FilterContextProvider } from './contexts/FilterContext';
+
+  function App() {
+    return (
+      <TasksContextProvider>
+        <FilterContextProvider>
+          <h1>Task Manager</h1>
+          <FilterSelect />
+          <TaskList />
+        </FilterContextProvider>
+      </TasksContextProvider>
+    );
+  }
+
+  export default App;
+  ```
+
+### **Step 7: Running Your Application**
+
+Now that you've set everything up, it's time to see your Task Manager in action.
+
+- **Start the Application**: Run the following command in your terminal:
+
+  ```bash
+  npm start
+  ```
+
+This should open a new tab in your default browser displaying your Task Manager application. You can now add, remove, and filter tasks based on their completion status.
+
+Congratulations! You've built a Task Manager application using React Context API for state management. This approach showcases how to effectively use React's Context API to manage and share state across different components, leading to cleaner and more maintainable code.
